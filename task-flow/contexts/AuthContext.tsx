@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 "use client";
 
@@ -54,13 +55,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionChecked, setSessionChecked] = useState(false);
-  const [session, setSessionState] = useState<Session | null>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const router = useRouter();
 
   // Update token when session changes
   const setSession = (newSession: Session | null) => {
-    setSessionState(newSession);
     setAuthToken(newSession?.access_token || null);
   };
 
