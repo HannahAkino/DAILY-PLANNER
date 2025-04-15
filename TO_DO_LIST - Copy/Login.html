@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>To-Do List - Login / Signup</title>
+  <link rel="stylesheet" href="Login.css" />
+</head>
+<body>
+  <div class="auth-container">
+    <div class="form-box" id="signupForm">
+      <h2>Sign Up</h2>
+      <input type="text" id="signupUsername" placeholder="Username" />
+      <input type="password" id="signupPassword" placeholder="Password" />
+      <button onclick="signUp()">Sign Up</button>
+      <p>Already have an account? <a href="#" onclick="toggleForm('login')">Log In</a></p>
+    </div>
+
+    <div class="form-box hidden" id="loginForm">
+      <h2>Log In</h2>
+      <input type="text" id="loginUsername" placeholder="Username" />
+      <input type="password" id="loginPassword" placeholder="Password" />
+      <button onclick="logIn()">Log In</button>
+      <p>Don't have an account? <a href="#" onclick="toggleForm('signup')">Sign Up</a></p>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+</body>
+</html>

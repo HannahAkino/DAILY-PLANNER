@@ -1,0 +1,87 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f2f5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  
+  .auth-container {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    width: 300px;
+  }
+  
+  .form-box {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  input {
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  button {
+    background-color: #2d89ef;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  button:hover {
+    background-color: #1b6ed6;
+  }
+  
+  p {
+    font-size: 0.9rem;
+    text-align: center;
+  }
+  
+  a {
+    color: #2d89ef;
+    text-decoration: none;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  
+  .hidden {
+    display: none;
+  }
+
+
+
+  #logoutContainer {
+    width: 100%;
+    background-color: #26e9b4; /* match Plan Your Day section */
+    padding: 10px 20px;
+    box-sizing: border-box;
+    text-align: left; /* align left */
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+#logoutBtn {
+    background-color: white;
+    color: #26e9b4;
+    border: 2px solid white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#logoutBtn:hover {
+    background-color: #1cd2a1;
+    color: white;
+}
+
+  
