@@ -53,8 +53,19 @@ export async function GET(req: NextRequest) {
     
     // Apply filters if needed
     if (filter === "today") {
-      const today = new Date().toISOString().split('T')[0];
-      query = query.eq("due_date", today);
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      
+      // Create tomorrow's date to use in a range query
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+      
+      // Use a range query for today: >= today AND < tomorrow
+      query = query
+        .gte("due_date", todayStr)
+        .lt("due_date", tomorrowStr);
     } else if (filter === "upcoming") {
       const today = new Date().toISOString().split('T')[0];
       query = query.gt("due_date", today);

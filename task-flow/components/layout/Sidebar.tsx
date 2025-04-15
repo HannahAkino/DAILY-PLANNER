@@ -4,8 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   ListTodo, 
-  Calendar, 
-  BarChart2, 
   Settings, 
   Menu, 
   ChevronLeft,
