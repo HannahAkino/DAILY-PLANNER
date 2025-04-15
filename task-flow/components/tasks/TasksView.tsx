@@ -382,11 +382,18 @@ export default function TasksView() {
 
     const handleSignOut = async () => {
         try {
+            console.log("Sign out initiated");
+            
+            // Just call the signOut function from AuthContext and let it handle navigation
             await signOut();
-            toast.success("You've been successfully signed out");
-            window.location.href = '/';
+            
+            // Add a toast for user feedback
+            toast.success("Signed out successfully");
+            
+            // Don't attempt to navigate - the AuthContext will handle it
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : "Failed to sign out";
+            console.error("Error during sign out:", error);
             toast.error(errorMessage);
         }
     };
@@ -486,7 +493,11 @@ export default function TasksView() {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={handleSignOut}
+                                                onClick={(e) => { 
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    handleSignOut();
+                                                }}
                                                 className="text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500"
                                                 title="Sign Out"
                                             >
