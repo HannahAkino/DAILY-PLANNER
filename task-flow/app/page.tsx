@@ -1,7 +1,7 @@
 // app/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Hero from "@/components/Hero";
 import Navigation from "@/components/Navigation";
@@ -15,7 +15,7 @@ import Footer from "@/components/Footer";
 import { AuthModal } from "@/components/tasks/AuthModal";
 import { useAuth } from "@/contexts/AuthContext";
 
-export default function Home() {
+function Home() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -136,5 +136,14 @@ export default function Home() {
         onRegister={handleRegister}
       />
     </main>
+  );
+}
+
+// Wrap Home in Suspense for useSearchParams compliance
+export default function PageWithSuspense() {
+  return (
+    <Suspense>
+      <Home />
+    </Suspense>
   );
 }
