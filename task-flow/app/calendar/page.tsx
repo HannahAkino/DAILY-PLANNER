@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 
 export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   // Simulate loading completion after a short delay
   useEffect(() => {
