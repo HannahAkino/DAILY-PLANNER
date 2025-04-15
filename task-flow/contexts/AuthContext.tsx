@@ -28,7 +28,7 @@ type AuthContextType = {
   authToken: string | null;
   setUser: Dispatch<SetStateAction<SupabaseUser | null>>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: AuthError | null }>;
+  signUp: (name: string, email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
   setSession: (session: Session | null) => void;
   loadUserProfile: (id: string) => Promise<void>;
@@ -214,39 +214,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (name: string, email: string, password: string) => {
     try {
-      // Validate email format
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      if (!emailRegex.test(email)) {
-        return { error: { message: 'Invalid email format' } };
-      }
+      console.log(`Attempting to register with email: ${email}`);
       
       // Create user with Supabase
-      const { error, data } = await supabase.auth.signUp({
-        email,
-        password,
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
       });
 
       if (error) {
+        console.error("Supabase signup error:", error);
         return { error };
       }
 
+      console.log("Supabase signup successful:", data);
+
       // Once signed up, create a profile for the user
       if (data?.user) {
-        // Insert user profile
-        const { error: profileError } = await supabase
+        // Check if profile already exists to prevent duplicate insertions
+        const { data: existingProfile, error: fetchError } = await supabase
           .from('profiles')
-          .insert([{ id: data.user.id, name, email }]);
-
-        if (profileError) {
-          return { error: profileError };
+          .select('id')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found" error
+          console.error("Error checking for existing profile:", fetchError);
+          return { error: fetchError };
+        }
+        
+        // Only insert profile if it doesn't already exist
+        if (!existingProfile) {
+          console.log("Creating new profile for user:", data.user.id);
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([{ id: data.user.id, name, email }]);
+  
+          if (profileError) {
+            console.error("Profile creation error:", profileError);
+            return { error: profileError };
+          }
+        } else {
+          console.log("Profile already exists for user:", data.user.id);
         }
       }
-
       return { error: null };
     } catch (err) {
-      console.error("Sign up error:", err);
+      console.error("AuthContext: Unexpected sign up error:", err);
       return { error: { message: 'An unexpected error occurred during sign up' } };
     }
   };

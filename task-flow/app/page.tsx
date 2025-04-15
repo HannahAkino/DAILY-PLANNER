@@ -94,7 +94,7 @@ export default function Home() {
   }
 
   async function handleRegister(name: string, email: string, password: string) {
-    console.log("Home: Registration attempt");
+    console.log("Home: Registration attempt with:", { name, email });
     const { error } = await signUp(name, email, password);
     
     if (error) {
