@@ -4,36 +4,69 @@
 // Play a notification sound using system sounds
 export const playNotificationSound = () => {
   try {
-    // Use a simple beep sound from the browser's Audio context
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+    // Try multiple sound approaches for better browser compatibility
     
-    oscillator.type = 'sine';
-    oscillator.frequency.value = 800; // Sound frequency in Hz
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+    // Approach 1: HTML5 Audio element (most compatible)
+    const audio = new Audio();
+    audio.src = "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PruXMvBh5TltztwpRGCxNEiM/z1rGMFwMRb7X04beAHwALXqDh78upRwgMPoznv+mrfDMHFF+p6r0uMgI0fNDa4qQ6CyRwxO/NdicsJ3306t10IQk1hujMsVYYCS2J5dO3Wx4JL4Pq1cWUTBEUYK/t0b+cRBEcMpnizpd+UiYiJoTmrBkVHFCk4rJKGiMwf+atTB8jPZjcuFohIkCW6MVEliK9VJAAAHic3L+zoJmVlpeZm52TcFNOaJixq4BRR1yZt7KJbWD/UQAGIxIAAHiclKA7NamtuK6nnoASBhhImvNwFACIDHZoWl+Sl5aYm5EpAAgTQIrLtGsVE0B8ubgWGD2T1t10GRAZPpPhej4GH02k+IgVAA1Bo/mBIQURToD2kBoGD0h9/osbBgF7kQmDZE1Me2sgBweSPCcAAIeQfoI2Hj42FgCbpqIWAACLkoRzQS0WHzIsHRAAkaUgAFlcVmljPCcHAJalUQAUHiApMDIzJwMAjqaDAEsVAAKSrBE5luKxPRcJAJOhAABSTVBRRisAAJimFidMW/N5BwCaqB4AVVlHTkU4NgcAl6GK9ndQW11fYGJjZEIDAI60V0UikrKnHAkAlKVkRlFTVVfyVABqc1MAaW08AAACMDk8Pj9AQUINCAAAPUZKsn8TBgiR9YYVChCHznccBQA/S06enJgAAESR0mECAD5P+734vgBM9Uc/QE1vcHFyc3R1km0AADZnwXgSMEw6yrgWADFhyWEAADJFDcOqCQAxboLkuToMAC5grdq1CQAqWPrtuDoIAChU5s2gcBgMACNG9r0QAB1LjOC5OQcAHEOAyLs7BAAbPWed2cbJzM3Ov2UAABc2U1evYQAAFTJOTv3+WAAAABIs8d7g4eLj5OXmuE0AABAY7+usAAARFdI6IkBOjSUAAA8RzXRucHFyc3R1ttS7vb6/wmgAAPnvDA4PENEhISIkJSYJ/VEA//XzF/f6+/z9/v8A1HIdHH7/IiQlJicoKSor5R8A8RgXFBFykQwAAOgC/8ZZmA8A5djDr1+UEgDfz7N9pHcA28WlWa+ZANLR0ry1uJUV0MesJr3OuQB7maZy/d4A0LoaAMgB/7e7vL2+v8DBKaOlpqeoqaqrrK2utA4AuKoDALQA17m8vb6/wMHCw8SsEgCvGBYUEu/QAK2ur7CxsrO0tau3uLm6u7y9vr/AwcLDxK2/AKoYQwCnoKGio6SlpqezCgClpgCfmJmam5ydnp/zBgCcnQagAJSQkZKTlJWWl7WMmJmam5ydnp+gAJJ3ASKNjo+QkZKTlJWWl5hRyACSmeGa3pubQwBI5wCJmgCDfH1+f4CBgoOShYaHiImKi4yNjo+QkaEGAHyeAHZ3eHl6e3x9fn8/AHN1dgBtb3BxcnN0dZhnaGlqa2xtbm9wcXJzdd+ZAGcXpGFiY2RlZmdoaWprbHwGAGBFAFlLAFNUVVZXWFlaZVJTVFVWV1hZWltkAE1OT1BRUlNUVVZXWFlacOMATe4ARRkAPDc4OTo7PD0+TD9AQUJDREVGR0hJSktMTU59DAA8mgA2Jf8xMjM0NTY3ODk6Ozw9Pj9AQUJDREVGR0hJSks6TQAwMQApKissLS4vMDEyMzQ1Njc4OTpfkiWkKTcAISIjJCUmJygpKissLS4vMDEyMzQ1Ngw9HgAgXQAZGhscHR4fICEiIyQlJhYAnpoIAJeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/wA=";
+    audio.volume = 0.5; // Set volume to 50%
     
-    // Short beep
-    gainNode.gain.value = 0.1;
-    oscillator.start();
+    // Play the sound
+    const playPromise = audio.play();
     
-    // Stop after a short duration
-    setTimeout(() => {
-      oscillator.stop();
-      // Clean up
-      setTimeout(() => {
-        gainNode.disconnect();
-        oscillator.disconnect();
-      }, 100);
-    }, 300);
+    // Handle potential promise rejection (in modern browsers)
+    if (playPromise !== undefined) {
+      playPromise.catch(error => {
+        console.error("Audio playback failed:", error);
+        // Fallback to approach 2 if HTML5 Audio fails
+        playAudioWithWebAudio();
+      });
+    }
     
     return true;
   } catch (error) {
     console.error('Error playing notification sound:', error);
-    return false;
+    // Try fallback approach
+    return playAudioWithWebAudio();
   }
 };
+
+// Fallback function using Web Audio API
+function playAudioWithWebAudio() {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    // Configure a more noticeable sound
+    oscillator.type = 'square'; // square wave sounds more like an alert
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5 note
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Louder sound
+    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+    
+    // Play a beep pattern
+    oscillator.start();
+    
+    // First beep
+    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+    
+    // Second beep
+    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime + 0.3);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    // Stop after the pattern
+    oscillator.stop(audioContext.currentTime + 0.6);
+    
+    return true;
+  } catch (e) {
+    console.error("Fallback audio also failed:", e);
+    return false;
+  }
+}
 
 // Schedule a browser notification for a task
 export const scheduleTaskNotification = (
