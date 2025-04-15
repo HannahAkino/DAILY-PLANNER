@@ -37,6 +37,7 @@ export default function TaskDialog({ isOpen, onClose, onSave, task }: TaskDialog
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+  const [dueTime, setDueTime] = useState<string>(""); 
   const [priority, setPriority] = useState("medium");
   const [hasReminder, setHasReminder] = useState(false);
   const [reminderTime, setReminderTime] = useState("15");
@@ -56,6 +57,15 @@ export default function TaskDialog({ isOpen, onClose, onSave, task }: TaskDialog
         setDueDate(undefined);
       }
       
+      // Set time if available
+      if (task.due_time) {
+        setDueTime(task.due_time);
+      } else if (task.dueTime) {
+        setDueTime(task.dueTime);
+      } else {
+        setDueTime(""); 
+      }
+      
       setPriority(task.priority || "medium");
       setHasReminder(task.reminder !== null && task.reminder !== undefined);
       if (task.reminder) {
@@ -70,6 +80,7 @@ export default function TaskDialog({ isOpen, onClose, onSave, task }: TaskDialog
     setTitle("");
     setDescription("");
     setDueDate(undefined);
+    setDueTime(""); 
     setPriority("medium");
     setHasReminder(false);
     setReminderTime("15");
@@ -87,6 +98,7 @@ export default function TaskDialog({ isOpen, onClose, onSave, task }: TaskDialog
       title,
       description,
       due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
+      due_time: dueTime || null, 
       priority,
       reminder: hasReminder ? parseInt(reminderTime) : null,
     });
@@ -158,12 +170,12 @@ export default function TaskDialog({ isOpen, onClose, onSave, task }: TaskDialog
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal bg-background",
+                      "w-full justify-start text-left font-normal border-input hover:bg-background hover:text-foreground focus:ring-2 focus:ring-primary/20 bg-background",
                       !dueDate && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, "PPP") : "Select date"}
+                    {dueDate ? format(dueDate, "PPP") : <span>Select date</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -176,6 +188,17 @@ export default function TaskDialog({ isOpen, onClose, onSave, task }: TaskDialog
                   />
                 </PopoverContent>
               </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dueTime" className="font-medium text-foreground">Due Time</Label>
+              <Input
+                id="dueTime"
+                type="time"
+                value={dueTime}
+                onChange={(e) => setDueTime(e.target.value)}
+                className="border-input focus:ring-2 focus:ring-primary/20 bg-background"
+              />
             </div>
 
             <div className="space-y-2">

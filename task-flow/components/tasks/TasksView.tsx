@@ -28,6 +28,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabase";
+import { useSearchParams } from "next/navigation";
+import { initNotifications, scheduleTaskNotification } from "@/lib/notifications";
 
 // Helper function to normalize task from snake_case to camelCase
 const normalizeTask = (task: any) => {
@@ -88,44 +90,54 @@ export default function TasksView() {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            
-            const responseData = await response.json();
-            
+
             if (!response.ok) {
-                console.error("Failed to load tasks:", responseData.error);
-                
-                // Handle session expiration
-                if (response.status === 401 || responseData.error?.includes("Invalid or expired token")) {
-                    toast.error("Your session has expired. Please log in again.");
-                    // Log user out when session expires
-                    await signOut();
-                    window.location.href = '/';
-                } else {
-                    throw new Error(responseData.error || "Failed to load tasks");
-                }
-            } else {
-                console.log("Tasks loaded successfully:", responseData.tasks?.length || 0, "tasks");
-                
-                // Normalize fields from snake_case to camelCase
-                const normalizedTasks = (responseData.tasks || []).map(task => normalizeTask(task));
-                
-                console.log("Normalized tasks:", normalizedTasks.length, "tasks");
-                setTasks(normalizedTasks);
+                throw new Error(`HTTP error ${response.status}`);
             }
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : "Failed to load tasks";
-            console.error("Error loading tasks:", errorMessage);
-            toast.error(errorMessage);
+
+            const data = await response.json();
+            setTasks(data.tasks || []);
+            
+            // Schedule notifications for tasks with reminders
+            if (data.tasks && Array.isArray(data.tasks)) {
+                data.tasks.forEach(task => {
+                    if (task.reminder && !task.completed && task.due_date) {
+                        scheduleTaskNotification(
+                            task.id,
+                            task.title,
+                            task.due_date,
+                            task.due_time || '00:00:00',
+                            task.reminder
+                        );
+                    }
+                });
+            }
+            
+        } catch (error) {
+            console.error("Error loading tasks:", error);
+            toast.error("Failed to load tasks");
         } finally {
             setLoading(false);
         }
-    }, [activeTab, getAuthToken]);
+    }, [activeTab, getAuthToken, signOut]);
 
     useEffect(() => {
         if (user) {
             loadTasks();
         }
     }, [user, loadTasks]);
+
+    useEffect(() => {
+        // Request notification permissions
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                Notification.requestPermission();
+            }
+            
+            // Initialize the notifications system
+            initNotifications();
+        }
+    }, []);
 
     const openTaskModal = (task: Task | null = null) => {
         if (!user) {
@@ -240,6 +252,61 @@ export default function TasksView() {
             const errorMessage = error instanceof Error ? error.message : "An error occurred";
             console.error("Error saving task:", errorMessage);
             toast.error(errorMessage);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSaveTask = async (taskData: Partial<Task>) => {
+        try {
+            setLoading(true);
+            
+            // Get fresh token from auth context
+            const token = await getAuthToken();
+            if (!token) {
+                toast.error("Please log in again to access your tasks");
+                return;
+            }
+            
+            const isEdit = !!editingTask;
+            const endpoint = isEdit ? `/api/tasks/${editingTask?.id}` : '/api/tasks';
+            const method = isEdit ? 'PUT' : 'POST';
+            
+            const response = await fetch(endpoint, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(taskData)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+            
+            // Get the saved task data
+            const savedTask = await response.json();
+            
+            // Schedule notification if task has reminder and isn't completed
+            if (savedTask.task && savedTask.task.reminder && !savedTask.task.completed && savedTask.task.due_date) {
+                scheduleTaskNotification(
+                    savedTask.task.id,
+                    savedTask.task.title,
+                    savedTask.task.due_date,
+                    savedTask.task.due_time || '00:00:00',
+                    savedTask.task.reminder
+                );
+            }
+            
+            // Refresh tasks after saving
+            await loadTasks();
+            toast.success(isEdit ? "Task updated!" : "Task created!");
+            setIsTaskDialogOpen(false);
+            setEditingTask(null);
+        } catch (error) {
+            console.error("Error saving task:", error);
+            toast.error("Failed to save task");
         } finally {
             setLoading(false);
         }
