@@ -33,21 +33,21 @@ export default function Sidebar({ className }: SidebarProps) {
       icon: ListTodo,
       description: "Manage your daily tasks",
       color: "text-blue-500"
-    },
-    {
-      title: "Calendar",
-      href: "/calendar",
-      icon: Calendar,
-      description: "View your schedule",
-      color: "text-indigo-500"
-    },
-    {
-      title: "Analytics",
-      href: "/analytics",
-      icon: BarChart2,
-      description: "Track your productivity",
-      color: "text-emerald-500"
     }
+    // {
+    //   title: "Calendar",
+    //   href: "/calendar",
+    //   icon: Calendar,
+    //   description: "View your schedule",
+    //   color: "text-indigo-500"
+    // },
+    // {
+    //   title: "Analytics",
+    //   href: "/analytics",
+    //   icon: BarChart2,
+    //   description: "Track your productivity",
+    //   color: "text-emerald-500"
+    // }
   ];
 
   const taskFilters = [
