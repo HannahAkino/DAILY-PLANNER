@@ -1,5 +1,5 @@
 // components/Footer.tsx
-import Image from "next/image";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Twitter, Facebook, Linkedin, Instagram, Send, ListChecks } from "lucide-react";
