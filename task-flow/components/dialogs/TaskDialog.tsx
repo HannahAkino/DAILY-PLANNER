@@ -119,7 +119,7 @@ export default function TaskDialog({ isOpen, onClose, onSave, task }: TaskDialog
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md bg-card text-card-foreground shadow-lg border-0">
+      <DialogContent className="sm:max-w-3xl bg-card text-card-foreground shadow-lg border-0">
         <DialogHeader className={`bg-gradient-to-r ${getPriorityColor()} p-6 -mx-6 -mt-6 rounded-t-lg border-b`}>
           <DialogTitle className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
             {task ? "Edit Task" : "Add New Task"}

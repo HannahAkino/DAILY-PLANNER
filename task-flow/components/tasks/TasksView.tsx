@@ -29,7 +29,8 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation";
-import { initNotifications, scheduleTaskNotification } from "@/lib/notifications";
+import { initNotifications, scheduleTaskNotification, onReminderDialogClosed } from "@/lib/notifications";
+import ReminderAlert from "@/components/dialogs/ReminderAlert";
 
 // Helper function to normalize task from snake_case to camelCase
 const normalizeTask = (task: any) => {
@@ -57,6 +58,15 @@ export default function TasksView() {
     const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("all");
     const [loading, setLoading] = useState(false);
+    
+    // State for reminder alert
+    const [reminderAlert, setReminderAlert] = useState({
+        isOpen: false,
+        taskId: "",
+        title: "",
+        dueDate: "",
+        dueTime: ""
+    });
 
     const loadTasks = useCallback(async () => {
         try {
@@ -136,6 +146,26 @@ export default function TasksView() {
             
             // Initialize the notifications system
             initNotifications();
+            
+            // Listen for custom reminder alert events
+            const handleReminderAlert = (event: CustomEvent) => {
+                const { id, title, dueDate, dueTime } = event.detail;
+                setReminderAlert({
+                    isOpen: true,
+                    taskId: id,
+                    title,
+                    dueDate,
+                    dueTime
+                });
+            };
+            
+            // Add event listener
+            window.addEventListener('show-reminder-alert', handleReminderAlert as EventListener);
+            
+            // Cleanup
+            return () => {
+                window.removeEventListener('show-reminder-alert', handleReminderAlert as EventListener);
+            };
         }
     }, []);
 
@@ -484,6 +514,11 @@ export default function TasksView() {
 
     const { tasks: filteredTasks, completedCount } = getFilteredTasks();
 
+    const handleCloseReminderAlert = () => {
+        setReminderAlert(prev => ({ ...prev, isOpen: false }));
+        onReminderDialogClosed();
+    };
+
     return (
         <div className="min-h-screen flex flex-col">
             <div className="flex-grow">
@@ -720,6 +755,14 @@ export default function TasksView() {
                 confirmLabel="Delete"
                 cancelLabel="Cancel"
                 variant="danger"
+            />
+            
+            <ReminderAlert
+                isOpen={reminderAlert.isOpen}
+                onClose={handleCloseReminderAlert}
+                title={reminderAlert.title}
+                dueDate={reminderAlert.dueDate}
+                dueTime={reminderAlert.dueTime}
             />
         </div>
     );
