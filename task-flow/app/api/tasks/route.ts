@@ -5,7 +5,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseUrl, supabaseAnonKey } from "@/lib/supabase";
 import { createClient } from '@supabase/supabase-js';
 import { verifyToken } from "@/lib/supabase";
-import Error from "next/error";
 
 // Helper function to extract JWT from Authorization header
 function extractBearerToken(req: NextRequest): string | null {
