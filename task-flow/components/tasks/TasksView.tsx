@@ -27,6 +27,7 @@ import ConfirmationDialog from "@/components/dialogs/ConfirmationDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/lib/supabase";
 
 // Helper function to normalize task from snake_case to camelCase
 const normalizeTask = (task: any) => {
@@ -382,18 +383,20 @@ export default function TasksView() {
 
     const handleSignOut = async () => {
         try {
-            console.log("Sign out initiated");
+            console.log("Sign out initiated via AuthContext");
             
-            // Just call the signOut function from AuthContext and let it handle navigation
-            await signOut();
-            
-            // Add a toast for user feedback
-            toast.success("Signed out successfully");
-            
-            // Don't attempt to navigate - the AuthContext will handle it
+            // Use the signOut function from the context
+            const { error } = await signOut();
+
+            if (error) {
+                toast.error(error.message || "Failed to sign out");
+            } else {
+                toast.success("Signed out successfully");
+                // Navigation is handled by the context
+            }
         } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : "Failed to sign out";
-            console.error("Error during sign out:", error);
+            const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+            console.error("Error during sign out call:", error);
             toast.error(errorMessage);
         }
     };

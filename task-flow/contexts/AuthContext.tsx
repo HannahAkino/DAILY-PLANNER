@@ -268,26 +268,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    console.log("Simplified sign out started");
+    
+    // Step 1: Clear the local state immediately
+    setUser(null);
+    setProfile(null);
+    setSession(null);
+    
+    console.log("Local state cleared");
+    
+    // Step 2: Try to sign out from Supabase but don't wait for it
     try {
-      console.log("AuthContext: Signing out user");
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error("AuthContext: Sign out error:", error);
-        return { error };
-      }
-      
-      // Reset state
-      setUser(null);
-      setProfile(null);
-      setSession(null);
-      router.push('/');
-      
-      return { error: null };
-    } catch (err) {
-      console.error("AuthContext: Unexpected sign out error:", err);
-      return { error: { message: 'An unexpected error occurred during sign out' } };
+      // Fire and forget Supabase sign out
+      supabase.auth.signOut().then(() => {
+        console.log("Supabase sign out completed");
+      }).catch(err => {
+        console.error("Error during Supabase sign out:", err);
+      });
+    } catch (error) {
+      console.error("Unexpected error initiating sign out:", error);
     }
+    
+    // Step 3: Set a cookie to prevent redirect loops
+    document.cookie = "redirected_from_tasks=true; max-age=10; path=/;";
+    
+    // Step 4: Force redirect to home page
+    console.log("Redirecting to home page...");
+    
+    // Use setTimeout to ensure this runs after React state updates
+    setTimeout(() => {
+      console.log("Executing redirect now");
+      window.location.href = '/';
+    }, 100);
+    
+    return { error: null };
   };
 
   const value = {
