@@ -11,6 +11,7 @@ export interface Task {
     title: string;
     description: string;
     dueDate: string;
+    due_date: string;
     priority: Priority;
     reminder: number | null | undefined;
     completed: boolean;

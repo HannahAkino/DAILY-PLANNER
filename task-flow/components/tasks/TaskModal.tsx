@@ -68,9 +68,9 @@ export default function TaskModal({ isOpen, onClose, onSave, task }: TaskModalPr
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md bg-white dark:bg-gray-900 shadow-lg border border-gray-200 dark:border-gray-800">
                 <DialogHeader>
-                    <DialogTitle>{task ? "Edit Task" : "Add New Task"}</DialogTitle>
+                    <DialogTitle className="text-xl font-bold">{task ? "Edit Task" : "Add New Task"}</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">

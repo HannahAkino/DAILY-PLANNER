@@ -1,12 +1,14 @@
 // components/tasks/TaskList.tsx
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { Task } from "@/types/tasks";
-import { Pencil, Trash, Plus, ListTodo, Circle, CalendarDays, Bell } from "lucide-react";
+import { Pencil, Trash, Plus, ListTodo, Circle, CalendarDays, Clock } from "lucide-react";
+import { format, isToday, isTomorrow, isPast } from "date-fns";
 
 interface TaskListProps {
     tasks: Task[];
+    loading: boolean;
     onToggleComplete: (taskId: string) => void;
     onEdit: (task: Task) => void;
     onDelete: (taskId: string) => void;
@@ -15,136 +17,223 @@ interface TaskListProps {
 
 export default function TaskList({
     tasks,
+    loading,
     onToggleComplete,
     onEdit,
     onDelete,
     onAddTask
 }: TaskListProps) {
+    if (loading) {
+        return (
+            <div className="w-full py-8 text-center">
+                <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-primary border-r-transparent"></div>
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading tasks...</p>
+            </div>
+        );
+    }
+
     if (!tasks.length) {
         return (
             <div className="text-center py-12">
                 <div className="mx-auto w-24 h-24 text-gray-300 mb-4">
                     <ListTodo className="h-24 w-24 mx-auto" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900">No tasks yet</h3>
-                <p className="mt-1 text-sm text-gray-500">Get started by creating a new task.</p>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">No tasks yet</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new task.</p>
                 <Button
                     onClick={onAddTask}
-                    className="mt-6 inline-flex items-center px-4 py-2"
+                    className="mt-6 inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white"
                 >
-                    <Plus className="h-4 w-4 mr-2" /> Add Task
+                    <Plus className="h-4 w-4 mr-2 text-white" /> Add Task
                 </Button>
             </div>
         );
     }
 
     return (
-        <div className="space-y-3">
-            {tasks.map(task => (
-                <Card
-                    key={task.id}
-                    className={`task-item bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden relative ${task.completed ? 'opacity-70' : ''}`}
-                >
-                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${getPriorityColorClass(task.priority)}`}></div>
-                    <div className="p-4">
-                        <div className="flex items-start justify-between">
-                            <div className="flex items-start space-x-3 flex-1 min-w-0">
-                                <Checkbox
-                                    checked={task.completed}
-                                    onCheckedChange={() => onToggleComplete(task.id)}
-                                    className="mt-1"
-                                />
-
-                                <div className="flex-1 min-w-0">
-                                    <h3 className={`text-md font-medium text-gray-800 ${task.completed ? 'line-through' : ''}`}>
-                                        {task.title}
-                                    </h3>
-                                    {task.description && (
-                                        <p className={`text-sm text-gray-600 mt-1 ${task.completed ? 'line-through' : ''}`}>
-                                            {task.description}
-                                        </p>
-                                    )}
-
-                                    <div className="flex items-center mt-2 space-x-4 text-sm">
-                                        {task.dueDate && (
-                                            <div className="flex items-center text-gray-500">
-                                                <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
-                                                <span>{formatDate(task.dueDate)}</span>
-                                            </div>
-                                        )}
-
-                                        <div className={`flex items-center ${getPriorityTextColor(task.priority)}`}>
-                                            <Circle className="h-2 w-2 mr-1.5 fill-current" />
-                                            <span className="capitalize">{task.priority}</span>
-                                        </div>
-
-                                        {task.reminder && (
-                                            <div className="flex items-center text-gray-500">
-                                                <Bell className="h-3.5 w-3.5 mr-1.5" />
-                                                <span>{getReminderText(task.reminder)}</span>
-                                            </div>
-                                        )}
+        <div className="w-full">
+            <table className="w-full border-collapse table-fixed">
+                <thead>
+                    <tr className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-t-lg">
+                        <th className="w-12 py-3 text-center">#</th>
+                        <th className="w-10 py-3 text-center">Done</th>
+                        <th className="py-3 text-left pl-2">Task</th>
+                        <th className="w-24 py-3 text-center hidden md:table-cell">Priority</th>
+                        <th className="w-32 py-3 text-center hidden md:table-cell">Due Date</th>
+                        <th className="w-32 py-3 text-center hidden lg:table-cell">Reminder</th>
+                        <th className="w-20 py-3 text-right pr-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {tasks.map((task, index) => {
+                        // Parse due date for enhanced display
+                        const dueDate = task.dueDate ? new Date(task.dueDate) : 
+                                       (task.due_date ? new Date(task.due_date) : null);
+                        
+                        // Determine row styling based on task status and due date
+                        let rowClass = "border-b border-gray-100 dark:border-gray-800 text-sm";
+                        
+                        if (task.completed) {
+                            rowClass += " bg-gray-50 dark:bg-gray-900/50 opacity-70";
+                        } else if (dueDate && isPast(dueDate) && !isToday(dueDate)) {
+                            rowClass += " bg-red-50 dark:bg-red-900/10";
+                        } else if (dueDate && isToday(dueDate)) {
+                            rowClass += " bg-amber-50 dark:bg-amber-900/10";
+                        } else if (dueDate && isTomorrow(dueDate)) {
+                            rowClass += " bg-blue-50 dark:bg-blue-900/10";
+                        } else {
+                            rowClass += " hover:bg-gray-50 dark:hover:bg-gray-900/30";
+                        }
+                        
+                        return (
+                            <tr key={task.id} className={rowClass}>
+                                <td className="py-3 text-center text-xs text-gray-500 dark:text-gray-400">
+                                    {index + 1}
+                                </td>
+                                <td className="py-3 text-center">
+                                    <div className="flex justify-center items-center">
+                                        <div className={`absolute left-0 h-full w-1 ${getPriorityColorClass(task.priority)}`}></div>
+                                        <Checkbox
+                                            checked={task.completed}
+                                            onCheckedChange={() => onToggleComplete(task.id)}
+                                            className={`${task.completed ? 'bg-primary border-primary' : ''}`}
+                                        />
                                     </div>
-                                </div>
-                            </div>
-
-                            <div className="flex space-x-2 ml-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => onEdit(task)}
-                                    className="h-8 w-8 p-0 text-gray-400 hover:text-blue-600"
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => onDelete(task.id)}
-                                    className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
-                                >
-                                    <Trash className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </Card>
-            ))}
+                                </td>
+                                <td className="py-3 pl-2">
+                                    <div>
+                                        <h3 className={`text-sm font-medium text-gray-800 dark:text-gray-200 ${task.completed ? 'line-through' : ''}`}>
+                                            {task.title}
+                                        </h3>
+                                        {task.description && (
+                                            <p className={`text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-1 ${task.completed ? 'line-through' : ''}`}>
+                                                {task.description}
+                                            </p>
+                                        )}
+                                        
+                                        {/* Mobile-only metadata */}
+                                        <div className="flex items-center mt-1 flex-wrap gap-2 text-xs md:hidden">
+                                            {dueDate && (
+                                                <Badge variant="outline" className={getBadgeClass(dueDate)}>
+                                                    <CalendarDays className="h-3 w-3 mr-1" />
+                                                    <span>{formatDateForDisplay(dueDate)}</span>
+                                                </Badge>
+                                            )}
+                                            <Badge variant="outline" className={getPriorityBadgeClass(task.priority)}>
+                                                <Circle className="h-2 w-2 mr-1 fill-current" />
+                                                <span className="capitalize">{task.priority}</span>
+                                            </Badge>
+                                            {task.reminder && (
+                                                <Badge variant="outline" className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                                    <Clock className="h-3 w-3 mr-1" />
+                                                    <span>{getReminderText(task.reminder)}</span>
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="py-3 text-center hidden md:table-cell">
+                                    <Badge variant="outline" className={getPriorityBadgeClass(task.priority)}>
+                                        <Circle className="h-2 w-2 mr-1 fill-current" />
+                                        <span className="capitalize">{task.priority}</span>
+                                    </Badge>
+                                </td>
+                                <td className="py-3 text-center text-xs hidden md:table-cell">
+                                    {dueDate ? (
+                                        <Badge variant="outline" className={getBadgeClass(dueDate)}>
+                                            <CalendarDays className="h-3 w-3 mr-1" />
+                                            <span>{formatDateForDisplay(dueDate)}</span>
+                                        </Badge>
+                                    ) : (
+                                        <span className="text-gray-400">—</span>
+                                    )}
+                                </td>
+                                <td className="py-3 text-center text-xs hidden lg:table-cell">
+                                    {task.reminder ? (
+                                        <Badge variant="outline" className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                            <Clock className="h-3 w-3 mr-1" />
+                                            <span>{getReminderText(task.reminder)}</span>
+                                        </Badge>
+                                    ) : (
+                                        <span className="text-gray-400">—</span>
+                                    )}
+                                </td>
+                                <td className="py-3 text-right pr-2">
+                                    <div className="flex justify-end space-x-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => onEdit(task)}
+                                            className="h-6 w-6 p-0 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                                        >
+                                            <Pencil className="h-3.5 w-3.5" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => onDelete(task.id)}
+                                            className="h-6 w-6 p-0 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                                        >
+                                            <Trash className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </div>
+                                </td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
         </div>
     );
 }
 
 // Helper functions
-function formatDate(dateStr: string) {
-    const options: Intl.DateTimeFormatOptions = {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric'
-    };
-    return new Date(dateStr).toLocaleDateString(undefined, options);
+function formatDateForDisplay(date: Date): string {
+    if (isToday(date)) {
+        return 'Today';
+    } else if (isTomorrow(date)) {
+        return 'Tomorrow';
+    } else if (isPast(date)) {
+        return `Overdue: ${format(date, 'MMM d')}`;
+    } else {
+        return format(date, 'EEE, MMM d');
+    }
+}
+
+function getBadgeClass(date: Date): string {
+    if (isPast(date) && !isToday(date)) {
+        return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
+    } else if (isToday(date)) {
+        return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
+    } else if (isTomorrow(date)) {
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+    } else {
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+    }
 }
 
 function getPriorityColorClass(priority: string) {
     switch (priority) {
         case 'high': return 'bg-red-500';
-        case 'medium': return 'bg-yellow-500';
+        case 'medium': return 'bg-amber-500';
         case 'low': return 'bg-green-500';
         default: return 'bg-gray-500';
     }
 }
 
-function getPriorityTextColor(priority: string) {
+function getPriorityBadgeClass(priority: string) {
     switch (priority) {
-        case 'high': return 'text-red-500';
-        case 'medium': return 'text-yellow-500';
-        case 'low': return 'text-green-500';
-        default: return 'text-gray-500';
+        case 'high': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
+        case 'medium': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
+        case 'low': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+        default: return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
     }
 }
 
 function getReminderText(minutes: number | null) {
+    if (!minutes) return '';
     if (minutes === 15) return '15 min before';
     if (minutes === 60) return '1 hour before';
     if (minutes === 1440) return '1 day before';
-    return '';
+    return `${minutes} min before`;
 }

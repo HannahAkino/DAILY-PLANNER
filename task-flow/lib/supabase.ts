@@ -2,10 +2,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 
-const supabaseUrl = 'https://yvhkeddgjrwaolmmvjgk.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2aGtlZGRnanJ3YW9sbW12amdrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDcwNTg2MCwiZXhwIjoyMDYwMjgxODYwfQ.jQP4fBIijohsddVPrpaDChsBS6gKFi3WzxEQd3u7wTU';
+// Use environment variables (now provided via next.config.ts)
+export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yvhkeddgjrwaolmmvjgk.supabase.co';
+export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2aGtlZGRnanJ3YW9sbW12amdrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDcwNTg2MCwiZXhwIjoyMDYwMjgxODYwfQ.jQP4fBIijohsddVPrpaDChsBS6gKFi3WzxEQd3u7wTU';
 
-// Create a single supabase client for the entire app
+// Create a single supabase client for the entire app, with error handling
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 // Types for AuthContext
@@ -17,3 +18,42 @@ export type SupabaseUser = Database['public']['Tables']['profiles']['Row'] & {
 export type SupabaseSession = {
   user: SupabaseUser;
 };
+
+// Utility function to get a token for API requests
+export async function getAuthToken(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token || null;
+  } catch (error) {
+    console.error("Error getting auth token:", error);
+    return null;
+  }
+}
+
+// Utility function to verify a token and get user ID
+export async function verifyToken(token: string): Promise<string | null> {
+  if (!token) return null;
+  
+  try {
+    // Create a new client to avoid session state issues
+    const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+    
+    // Use built-in JWT verification to get user
+    const { data, error } = await tempClient.auth.getUser(token);
+    
+    if (error || !data.user) {
+      console.error("Token verification failed:", error);
+      return null;
+    }
+    
+    return data.user.id;
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    return null;
+  }
+}
