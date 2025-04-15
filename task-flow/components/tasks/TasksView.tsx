@@ -150,30 +150,23 @@ export default function TasksView() {
     };
 
     const saveTask = async (taskData: Partial<Task>) => {
-        if (!user) return;
-
         try {
+            console.log("Saving task data:", taskData);
             setLoading(true);
             
             // Get fresh token from auth context
             const token = await getAuthToken();
-            
-            // Show a user-friendly message if there's no auth token
             if (!token) {
-                console.error("No auth token available from context");
-                toast.error("Please log in again to save tasks");
-                setLoading(false);
-                // Auto logout if no token available
-                await signOut();
-                window.location.href = '/';
+                console.error("No auth token available during task save");
+                toast.error("Please log in again to save your task");
                 return;
             }
             
-            console.log("Got token for task creation:", token.substring(0, 10) + "...");
-            
+            // For editing, we need to use PATCH on /api/tasks with the ID in the body
+            // For new tasks, we use POST on /api/tasks
             if (editingTask) {
-                // Update existing task
-                console.log("Updating task:", editingTask.id, taskData);
+                console.log(`Updating task with ID: ${editingTask.id}`);
+                
                 const response = await fetch('/api/tasks', {
                     method: 'PATCH',
                     headers: {
@@ -182,7 +175,7 @@ export default function TasksView() {
                     },
                     body: JSON.stringify({
                         id: editingTask.id,
-                        ...taskData,
+                        ...taskData
                     })
                 });
                 
@@ -192,26 +185,35 @@ export default function TasksView() {
                     console.error("Failed to update task:", responseData.error);
                     
                     // Handle session expiration
-                    if (response.status === 401 || responseData.error?.includes("Invalid or expired token")) {
+                    if (response.status === 401) {
                         toast.error("Your session has expired. Please log in again.");
-                        // Log user out when session expires
                         await signOut();
                         window.location.href = '/';
                     } else {
                         throw new Error(responseData.error || "Failed to update task");
                     }
                 } else {
-                    console.log("Task updated successfully:", responseData.task);
+                    console.log("Task updated successfully:", responseData.task?.id);
                     
-                    // Normalize the returned task
-                    const normalizedTask = normalizeTask(responseData.task);
+                    // Schedule notification if task has reminder and isn't completed
+                    if (responseData.task && responseData.task.reminder && 
+                        !responseData.task.completed && responseData.task.due_date) {
+                        scheduleTaskNotification(
+                            responseData.task.id,
+                            responseData.task.title,
+                            responseData.task.due_date,
+                            responseData.task.due_time || '00:00:00',
+                            responseData.task.reminder
+                        );
+                    }
                     
-                    setTasks(tasks.map(t => t.id === editingTask.id ? normalizedTask : t));
-                    toast.success("Task updated successfully");
+                    await loadTasks();
+                    toast.success("Task updated successfully!");
                 }
             } else {
-                // Create new task
-                console.log("Creating new task:", taskData);
+                // Create new task using POST
+                console.log("Creating new task");
+                
                 const response = await fetch('/api/tasks', {
                     method: 'POST',
                     headers: {
@@ -227,86 +229,39 @@ export default function TasksView() {
                     console.error("Failed to create task:", responseData.error);
                     
                     // Handle session expiration
-                    if (response.status === 401 || responseData.error?.includes("Invalid or expired token")) {
+                    if (response.status === 401) {
                         toast.error("Your session has expired. Please log in again.");
-                        // Log user out when session expires
                         await signOut();
                         window.location.href = '/';
                     } else {
                         throw new Error(responseData.error || "Failed to create task");
                     }
                 } else {
-                    console.log("Task created successfully:", responseData.task);
+                    console.log("Task created successfully:", responseData.task?.id);
                     
-                    // Normalize the returned task
-                    const normalizedTask = normalizeTask(responseData.task);
+                    // Schedule notification if task has reminder and isn't completed
+                    if (responseData.task && responseData.task.reminder && 
+                        !responseData.task.completed && responseData.task.due_date) {
+                        scheduleTaskNotification(
+                            responseData.task.id,
+                            responseData.task.title,
+                            responseData.task.due_date,
+                            responseData.task.due_time || '00:00:00',
+                            responseData.task.reminder
+                        );
+                    }
                     
-                    setTasks([...tasks, normalizedTask]);
-                    toast.success("Task created successfully");
+                    await loadTasks();
+                    toast.success("Task created successfully!");
                 }
             }
             
             setIsTaskDialogOpen(false);
             setEditingTask(null);
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : "An error occurred";
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Failed to save task";
             console.error("Error saving task:", errorMessage);
             toast.error(errorMessage);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSaveTask = async (taskData: Partial<Task>) => {
-        try {
-            setLoading(true);
-            
-            // Get fresh token from auth context
-            const token = await getAuthToken();
-            if (!token) {
-                toast.error("Please log in again to access your tasks");
-                return;
-            }
-            
-            const isEdit = !!editingTask;
-            const endpoint = isEdit ? `/api/tasks/${editingTask?.id}` : '/api/tasks';
-            const method = isEdit ? 'PUT' : 'POST';
-            
-            const response = await fetch(endpoint, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(taskData)
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}`);
-            }
-            
-            // Get the saved task data
-            const savedTask = await response.json();
-            
-            // Schedule notification if task has reminder and isn't completed
-            if (savedTask.task && savedTask.task.reminder && !savedTask.task.completed && savedTask.task.due_date) {
-                scheduleTaskNotification(
-                    savedTask.task.id,
-                    savedTask.task.title,
-                    savedTask.task.due_date,
-                    savedTask.task.due_time || '00:00:00',
-                    savedTask.task.reminder
-                );
-            }
-            
-            // Refresh tasks after saving
-            await loadTasks();
-            toast.success(isEdit ? "Task updated!" : "Task created!");
-            setIsTaskDialogOpen(false);
-            setEditingTask(null);
-        } catch (error) {
-            console.error("Error saving task:", error);
-            toast.error("Failed to save task");
         } finally {
             setLoading(false);
         }
@@ -408,20 +363,18 @@ export default function TasksView() {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            
-            const responseData = await response.json();
-            
+
             if (!response.ok) {
-                console.error("Failed to delete task:", responseData.error);
+                console.error("Failed to delete task:", response.status);
                 
                 // Handle session expiration
-                if (response.status === 401 || responseData.error?.includes("Invalid or expired token")) {
+                if (response.status === 401 || response.statusText?.includes("Invalid or expired token")) {
                     toast.error("Your session has expired. Please log in again.");
                     // Log user out when session expires
                     await signOut();
                     window.location.href = '/';
                 } else {
-                    throw new Error(responseData.error || "Failed to delete task");
+                    throw new Error("Failed to delete task");
                 }
             } else {
                 console.log("Task deleted successfully");

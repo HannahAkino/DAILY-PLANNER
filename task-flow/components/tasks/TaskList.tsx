@@ -60,6 +60,7 @@ export default function TaskList({
                         <th className="py-3 text-left pl-2">Task</th>
                         <th className="w-24 py-3 text-center hidden md:table-cell">Priority</th>
                         <th className="w-32 py-3 text-center hidden md:table-cell">Due Date</th>
+                        <th className="w-28 py-3 text-center hidden md:table-cell">Due Time</th>
                         <th className="w-32 py-3 text-center hidden lg:table-cell">Reminder</th>
                         <th className="w-20 py-3 text-right pr-2">Actions</th>
                     </tr>
@@ -138,11 +139,21 @@ export default function TaskList({
                                         <span className="capitalize">{task.priority}</span>
                                     </Badge>
                                 </td>
-                                <td className="py-3 text-center text-xs hidden md:table-cell">
+                                <td className="py-3 text-center hidden md:table-cell">
                                     {dueDate ? (
                                         <Badge variant="outline" className={getBadgeClass(dueDate)}>
                                             <CalendarDays className="h-3 w-3 mr-1" />
                                             <span>{formatDateForDisplay(dueDate)}</span>
+                                        </Badge>
+                                    ) : (
+                                        <span className="text-gray-400">—</span>
+                                    )}
+                                </td>
+                                <td className="py-3 text-center hidden md:table-cell">
+                                    {task.dueTime || task.due_time ? (
+                                        <Badge variant="outline" className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                            <Clock className="h-3 w-3 mr-1" />
+                                            <span>{formatTimeForDisplay(task.dueTime || task.due_time)}</span>
                                         </Badge>
                                     ) : (
                                         <span className="text-gray-400">—</span>
@@ -197,6 +208,31 @@ function formatDateForDisplay(date: Date): string {
         return `Overdue: ${format(date, 'MMM d')}`;
     } else {
         return format(date, 'EEE, MMM d');
+    }
+}
+
+function formatTimeForDisplay(timeStr: string): string {
+    if (!timeStr) return '';
+    
+    try {
+        // Handle different time formats
+        // If it's just a time like "14:30:00"
+        if (timeStr.includes(':')) {
+            const [hours, minutes] = timeStr.split(':');
+            const hour = parseInt(hours, 10);
+            const minute = parseInt(minutes, 10);
+            
+            // Convert to 12-hour format with AM/PM
+            const period = hour >= 12 ? 'PM' : 'AM';
+            const displayHour = hour % 12 || 12; // Convert 0 to 12 for 12 AM
+            
+            return `${displayHour}:${minute.toString().padStart(2, '0')} ${period}`;
+        }
+        
+        return timeStr;
+    } catch (e) {
+        console.error("Error formatting time:", e);
+        return timeStr;
     }
 }
 

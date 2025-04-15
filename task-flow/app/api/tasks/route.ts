@@ -118,25 +118,27 @@ export async function POST(req: NextRequest) {
     
     // Get task data from request
     const taskData = await req.json();
-    console.log("Creating new task for user:", userId, taskData);
+    
+    console.log("Creating task with data:", taskData);
     
     // Ensure we're using snake_case for database fields
     const normalizedTaskData = {
       title: taskData.title,
-      description: taskData.description || '',
+      description: taskData.description || "",
       // Handle both camelCase and snake_case field names
       due_date: taskData.due_date || taskData.dueDate || null,
-      priority: taskData.priority || 'medium',
+      due_time: taskData.due_time || taskData.dueTime || null,  
+      priority: taskData.priority || "medium",
       reminder: taskData.reminder,
+      completed: taskData.completed || false,
       user_id: userId,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      completed: false
+      updated_at: new Date().toISOString()
     };
     
-    console.log("Normalized task data:", normalizedTaskData);
+    console.log("Creating task with normalized data:", normalizedTaskData);
     
-    // Insert task with user_id
+    // Insert new task
     const { data, error } = await supabase
       .from("tasks")
       .insert(normalizedTaskData)
@@ -148,7 +150,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     
-    console.log("Task created successfully:", data);
     return NextResponse.json({ task: data });
     
   } catch (error) {
@@ -193,6 +194,8 @@ export async function PATCH(req: NextRequest) {
       // Handle both camelCase and snake_case field names
       ...(taskData.due_date !== undefined && { due_date: taskData.due_date }),
       ...(taskData.dueDate !== undefined && { due_date: taskData.dueDate }),
+      ...(taskData.due_time !== undefined && { due_time: taskData.due_time }),
+      ...(taskData.dueTime !== undefined && { due_time: taskData.dueTime }),
       ...(taskData.priority !== undefined && { priority: taskData.priority }),
       ...(taskData.reminder !== undefined && { reminder: taskData.reminder }),
       ...(taskData.completed !== undefined && { completed: taskData.completed }),
