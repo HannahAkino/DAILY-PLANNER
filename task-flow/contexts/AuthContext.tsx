@@ -268,18 +268,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    console.log("Simplified sign out started");
+    console.log("Aggressive sign out started");
     
-    // Step 1: Clear the local state immediately
+    // Step 1: Clear all state variables first
     setUser(null);
     setProfile(null);
     setSession(null);
+    setAuthToken(null);
     
     console.log("Local state cleared");
     
-    // Step 2: Try to sign out from Supabase but don't wait for it
+    // Step 2: Clear all Supabase-related localStorage items
     try {
-      // Fire and forget Supabase sign out
+      // Clear all supabase-related items from localStorage
+      for (const key in localStorage) {
+        if (key.startsWith('supabase') || key.includes('auth') || key.includes('sb-')) {
+          console.log(`Clearing localStorage item: ${key}`);
+          localStorage.removeItem(key);
+        }
+      }
+      
+      // Clear sessionStorage items too
+      for (const key in sessionStorage) {
+        if (key.startsWith('supabase') || key.includes('auth') || key.includes('sb-')) {
+          console.log(`Clearing sessionStorage item: ${key}`);
+          sessionStorage.removeItem(key);
+        }
+      }
+      
+      // Try to clear all cookies by setting their expiration to the past
+      document.cookie.split(";").forEach(function(c) {
+        const cookieName = c.trim().split("=")[0];
+        if (cookieName.includes('supabase') || cookieName.includes('sb-') || cookieName.includes('auth')) {
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+          console.log(`Clearing cookie: ${cookieName}`);
+        }
+      });
+    } catch (e) {
+      console.error("Error clearing storage:", e);
+    }
+    
+    // Step 3: Call Supabase signOut as fire-and-forget
+    try {
       supabase.auth.signOut().then(() => {
         console.log("Supabase sign out completed");
       }).catch(err => {
@@ -289,13 +319,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Unexpected error initiating sign out:", error);
     }
     
-    // Step 3: Set a cookie to prevent redirect loops
+    // Step 4: Set a cookie to prevent redirect loops
     document.cookie = "redirected_from_tasks=true; max-age=10; path=/;";
     
-    // Step 4: Force redirect to home page
+    // Step 5: Force redirect to home page after a small delay
     console.log("Redirecting to home page...");
     
-    // Use setTimeout to ensure this runs after React state updates
     setTimeout(() => {
       console.log("Executing redirect now");
       window.location.href = '/';
