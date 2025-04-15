@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import TaskAnalytics from "@/components/analytics/TaskAnalytics";
 import { Task } from "@/types/tasks";
@@ -13,13 +13,7 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const { user, getAuthToken } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      loadTasks();
-    }
-  }, [user]);
-
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -61,7 +55,13 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAuthToken]);
+
+  useEffect(() => {
+    if (user) {
+      loadTasks();
+    }
+  }, [user, loadTasks]);
 
   return (
     <DashboardLayout>
