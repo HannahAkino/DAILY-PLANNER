@@ -28,6 +28,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+// Helper function to normalize task from snake_case to camelCase
+const normalizeTask = (task: any) => {
+    return {
+        id: task.id,
+        userId: task.user_id,
+        title: task.title,
+        description: task.description || '',
+        dueDate: task.due_date,
+        priority: task.priority || 'medium',
+        reminder: task.reminder,
+        completed: task.completed,
+        createdAt: task.created_at,
+        updatedAt: task.updated_at
+    };
+};
+
 export default function TasksView() {
     const { user, profile, loading: authLoading, signOut, getAuthToken } = useAuth();
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -52,17 +68,20 @@ export default function TasksView() {
                 console.error("No auth token available from context");
                 toast.error("Please log in again to access your tasks");
                 setLoading(false);
+                // Auto logout if no token available
+                await signOut();
+                window.location.href = '/';
                 return;
             }
             
             console.log("Got token for task loading:", token.substring(0, 10) + "...");
             
+            // Use API filtering with a fallback to client-side filtering
             let filter = "";
             if (activeTab !== "all") {
                 filter = `?filter=${activeTab}`;
             }
             
-            // Use the token in the request header
             const response = await fetch(`/api/tasks${filter}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -75,14 +94,22 @@ export default function TasksView() {
                 console.error("Failed to load tasks:", responseData.error);
                 
                 // Handle session expiration
-                if (response.status === 401) {
+                if (response.status === 401 || responseData.error?.includes("Invalid or expired token")) {
                     toast.error("Your session has expired. Please log in again.");
+                    // Log user out when session expires
+                    await signOut();
+                    window.location.href = '/';
                 } else {
                     throw new Error(responseData.error || "Failed to load tasks");
                 }
             } else {
                 console.log("Tasks loaded successfully:", responseData.tasks?.length || 0, "tasks");
-                setTasks(responseData.tasks || []);
+                
+                // Normalize fields from snake_case to camelCase
+                const normalizedTasks = (responseData.tasks || []).map(task => normalizeTask(task));
+                
+                console.log("Normalized tasks:", normalizedTasks.length, "tasks");
+                setTasks(normalizedTasks);
             }
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : "Failed to load tasks";
@@ -123,6 +150,9 @@ export default function TasksView() {
                 console.error("No auth token available from context");
                 toast.error("Please log in again to save tasks");
                 setLoading(false);
+                // Auto logout if no token available
+                await signOut();
+                window.location.href = '/';
                 return;
             }
             
@@ -149,14 +179,21 @@ export default function TasksView() {
                     console.error("Failed to update task:", responseData.error);
                     
                     // Handle session expiration
-                    if (response.status === 401) {
+                    if (response.status === 401 || responseData.error?.includes("Invalid or expired token")) {
                         toast.error("Your session has expired. Please log in again.");
+                        // Log user out when session expires
+                        await signOut();
+                        window.location.href = '/';
                     } else {
                         throw new Error(responseData.error || "Failed to update task");
                     }
                 } else {
                     console.log("Task updated successfully:", responseData.task);
-                    setTasks(tasks.map(t => t.id === editingTask.id ? responseData.task : t));
+                    
+                    // Normalize the returned task
+                    const normalizedTask = normalizeTask(responseData.task);
+                    
+                    setTasks(tasks.map(t => t.id === editingTask.id ? normalizedTask : t));
                     toast.success("Task updated successfully");
                 }
             } else {
@@ -177,14 +214,21 @@ export default function TasksView() {
                     console.error("Failed to create task:", responseData.error);
                     
                     // Handle session expiration
-                    if (response.status === 401) {
+                    if (response.status === 401 || responseData.error?.includes("Invalid or expired token")) {
                         toast.error("Your session has expired. Please log in again.");
+                        // Log user out when session expires
+                        await signOut();
+                        window.location.href = '/';
                     } else {
                         throw new Error(responseData.error || "Failed to create task");
                     }
                 } else {
                     console.log("Task created successfully:", responseData.task);
-                    setTasks([...tasks, responseData.task]);
+                    
+                    // Normalize the returned task
+                    const normalizedTask = normalizeTask(responseData.task);
+                    
+                    setTasks([...tasks, normalizedTask]);
                     toast.success("Task created successfully");
                 }
             }
@@ -212,6 +256,9 @@ export default function TasksView() {
             if (!token) {
                 console.error("No auth token available from context");
                 toast.error("Please log in again to access your tasks");
+                // Auto logout if no token available
+                await signOut();
+                window.location.href = '/';
                 return;
             }
             
@@ -235,16 +282,22 @@ export default function TasksView() {
                 console.error("Failed to update task:", responseData.error);
                 
                 // Handle session expiration
-                if (response.status === 401) {
+                if (response.status === 401 || responseData.error?.includes("Invalid or expired token")) {
                     toast.error("Your session has expired. Please log in again.");
+                    // Log user out when session expires
+                    await signOut();
+                    window.location.href = '/';
                 } else {
                     throw new Error(responseData.error || "Failed to update task");
                 }
             } else {
                 console.log("Task updated successfully:", responseData.task);
                 
+                // Normalize the returned task
+                const normalizedTask = normalizeTask(responseData.task);
+                
                 // Update local state
-                setTasks(tasks.map(t => t.id === taskId ? responseData.task : t));
+                setTasks(tasks.map(t => t.id === taskId ? normalizedTask : t));
                 
                 toast.success(`Task marked as ${responseData.task.completed ? 'completed' : 'incomplete'}`);
             }
@@ -274,6 +327,9 @@ export default function TasksView() {
                 console.error("No auth token available from context");
                 toast.error("Please log in again to access your tasks");
                 setLoading(false);
+                // Auto logout if no token available
+                await signOut();
+                window.location.href = '/';
                 return;
             }
             
@@ -291,8 +347,11 @@ export default function TasksView() {
                 console.error("Failed to delete task:", responseData.error);
                 
                 // Handle session expiration
-                if (response.status === 401) {
+                if (response.status === 401 || responseData.error?.includes("Invalid or expired token")) {
                     toast.error("Your session has expired. Please log in again.");
+                    // Log user out when session expires
+                    await signOut();
+                    window.location.href = '/';
                 } else {
                     throw new Error(responseData.error || "Failed to delete task");
                 }
@@ -325,6 +384,7 @@ export default function TasksView() {
         try {
             await signOut();
             toast.success("You've been successfully signed out");
+            window.location.href = '/';
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : "Failed to sign out";
             toast.error(errorMessage);
@@ -332,31 +392,57 @@ export default function TasksView() {
     };
 
     const getFilteredTasks = () => {
-        // Local filtering to ensure it works correctly
+        // Local filtering to provide a fallback if API filtering doesn't work as expected
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
         
-        const filtered = tasks.filter(task => {
-            const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+        // First check if we need to apply additional filtering (in case API filtering isn't working)
+        let shouldApplyLocalFilter = true;
+        
+        // For completed and priority, the API filtering should work well
+        if (activeTab === 'all' || activeTab === 'completed' || activeTab === 'priority') {
+            shouldApplyLocalFilter = false;
+        }
+        
+        let filtered = tasks;
+        
+        if (shouldApplyLocalFilter) {
+            filtered = tasks.filter(task => {
+                // If no due date, it can't be today or upcoming
+                if (!task.dueDate && (activeTab === 'today' || activeTab === 'upcoming')) {
+                    return false;
+                }
+                
+                // Parse the due date in YYYY-MM-DD format
+                const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+                
+                // Set to midnight for comparison
+                if (dueDate) {
+                    dueDate.setHours(0, 0, 0, 0);
+                }
+                
+                switch(activeTab) {
+                    case 'today': {
+                        // Compare year, month, and day with today
+                        const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+                        const dueDateStr = dueDate?.toISOString().split('T')[0]; // YYYY-MM-DD
+                        return dueDateStr === todayStr;
+                    }
+                    case 'upcoming': {
+                        // All future dates starting from tomorrow
+                        const tomorrowStr = tomorrow.toISOString().split('T')[0]; // YYYY-MM-DD
+                        const dueDateStr = dueDate?.toISOString().split('T')[0]; // YYYY-MM-DD
+                        return dueDateStr >= tomorrowStr;
+                    }
+                    default:
+                        return true;
+                }
+            });
             
-            switch(activeTab) {
-                case 'today':
-                    return dueDate && 
-                        dueDate.getFullYear() === today.getFullYear() && 
-                        dueDate.getMonth() === today.getMonth() && 
-                        dueDate.getDate() === today.getDate();
-                case 'upcoming':
-                    return dueDate && dueDate > today;
-                case 'completed':
-                    return task.completed;
-                case 'priority':
-                    return task.priority === 'high';
-                default:
-                    return true; // 'all' tab or fallback
-            }
-        });
+            console.log(`Applied local filtering for '${activeTab}': ${filtered.length} of ${tasks.length} tasks`);
+        }
         
         const completedCount = tasks.filter(task => task.completed).length;
         
@@ -425,22 +511,23 @@ export default function TasksView() {
                     </div>
                 </header>
 
-                <main className="container mx-auto p-4">
+                <main className="container mx-auto p-4 pb-24 md:pb-4">
                     <UserGreeting 
-                        userName={profile?.name || (user ? 'there' : 'there')} 
+                        userName={profile?.name || (user?.email ? user.email.split('@')[0] : 'there')} 
                         isAuthenticated={!!user}
                         onLogin={() => setIsAuthDialogOpen(true)}
                     />
 
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
                         <div className="flex justify-between items-center mb-4">
-                            <TabsList className="border-b border-gray-200 dark:border-gray-700 w-full justify-start bg-transparent p-0 overflow-x-auto no-scrollbar">
+                            <TabsList className="border-b border-gray-200 dark:border-gray-700 w-full justify-start bg-transparent p-0 overflow-x-auto hide-scrollbar">
                                 <TabsTrigger 
                                     value="all" 
                                     className="py-4 px-1 data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=inactive]:border-transparent data-[state=inactive]:text-gray-500 rounded-none"
                                 >
                                     <ListTodo className="h-4 w-4 mr-2" />
-                                    All Tasks
+                                    <span className="hidden sm:inline">All Tasks</span>
+                                    <span className="sm:hidden">All</span>
                                 </TabsTrigger>
                                 <TabsTrigger 
                                     value="today" 
@@ -454,37 +541,41 @@ export default function TasksView() {
                                     className="py-4 px-1 data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=inactive]:border-transparent data-[state=inactive]:text-gray-500 rounded-none"
                                 >
                                     <CalendarRange className="h-4 w-4 mr-2" />
-                                    Upcoming
+                                    <span className="hidden sm:inline">Upcoming</span>
+                                    <span className="sm:hidden">Next</span>
                                 </TabsTrigger>
                                 <TabsTrigger 
                                     value="completed" 
                                     className="py-4 px-1 data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=inactive]:border-transparent data-[state=inactive]:text-gray-500 rounded-none"
                                 >
                                     <CheckCircle className="h-4 w-4 mr-2" />
-                                    Completed
+                                    <span className="hidden sm:inline">Completed</span>
+                                    <span className="sm:hidden">Done</span>
                                 </TabsTrigger>
                                 <TabsTrigger 
                                     value="priority" 
                                     className="py-4 px-1 data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=inactive]:border-transparent data-[state=inactive]:text-gray-500 rounded-none"
                                 >
                                     <AlertCircle className="h-4 w-4 mr-2" />
-                                    Priority
+                                    <span className="hidden sm:inline">Priority</span>
+                                    <span className="sm:hidden">High</span>
                                 </TabsTrigger>
                                 <TabsTrigger 
                                     value="analytics" 
                                     className="py-4 px-1 data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=inactive]:border-transparent data-[state=inactive]:text-gray-500 rounded-none"
                                 >
                                     <BarChart className="h-4 w-4 mr-2" />
-                                    Analytics
+                                    <span className="hidden sm:inline">Analytics</span>
+                                    <span className="sm:hidden">Stats</span>
                                 </TabsTrigger>
                             </TabsList>
                             
                             <Button
                                 size="sm"
                                 onClick={() => openTaskModal(null)}
-                                className="flex gap-1 items-center bg-blue-600 hover:bg-blue-700 text-white ml-4"
+                                className="flex gap-1 items-center bg-blue-600 hover:bg-blue-700 text-white ml-4 whitespace-nowrap"
                             >
-                                <Plus className="h-4 w-4" /> Add Task
+                                <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Add Task</span><span className="sm:hidden">Add</span>
                             </Button>
                         </div>
 
@@ -496,7 +587,7 @@ export default function TasksView() {
 
                         <TabsContent value={activeTab} className="mt-2">
                             <div className="bg-gray-50 dark:bg-gray-850 rounded-lg border border-gray-200 dark:border-gray-800">
-                                <div className="tasks-container h-[calc(100vh-320px)] md:h-[calc(100vh-290px)] overflow-y-auto custom-scrollbar">
+                                <div className="tasks-container h-[calc(100vh-320px)] md:h-[calc(100vh-290px)] overflow-y-auto custom-scrollbar pb-16 md:pb-4">
                                     {activeTab === "analytics" ? (
                                         <TaskAnalytics tasks={filteredTasks} />
                                     ) : (

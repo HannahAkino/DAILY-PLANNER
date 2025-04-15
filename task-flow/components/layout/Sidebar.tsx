@@ -143,7 +143,7 @@ export default function Sidebar({ className }: SidebarProps) {
             ))}
           </nav>
 
-          {expanded && (
+          {/* {expanded && (
             <div className="mt-6">
               <div className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Filters
@@ -166,11 +166,11 @@ export default function Sidebar({ className }: SidebarProps) {
                 ))}
               </nav>
             </div>
-          )}
+          )} */}
         </div>
       </div>
 
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+      {/* <div className="p-4 border-t border-gray-200 dark:border-gray-700">
         <Link
           href="/settings"
           className={cn(
@@ -189,7 +189,7 @@ export default function Sidebar({ className }: SidebarProps) {
             Settings
           </span>
         </Link>
-      </div>
+      </div> */}
     </div>
   );
 }

@@ -43,7 +43,33 @@ export async function verifyToken(token: string): Promise<string | null> {
       }
     });
     
-    // Use built-in JWT verification to get user
+    // Try manual JWT decoding first to avoid API calls if possible
+    try {
+      // JWT tokens have three parts separated by dots
+      const tokenParts = token.split('.');
+      if (tokenParts.length === 3) {
+        // The middle part is the payload, base64 encoded
+        const payload = JSON.parse(atob(tokenParts[1]));
+        
+        // Check if token is expired
+        const currentTime = Math.floor(Date.now() / 1000);
+        if (payload.exp && payload.exp < currentTime) {
+          console.log("Token is expired based on JWT payload");
+          return null;
+        }
+        
+        // Return the sub claim which is the user ID
+        if (payload.sub) {
+          console.log("Successfully extracted user ID from JWT payload");
+          return payload.sub;
+        }
+      }
+    } catch (jwtError) {
+      console.log("Error decoding JWT locally:", jwtError);
+      // Continue with API verification as fallback
+    }
+    
+    // Use built-in JWT verification to get user as fallback
     const { data, error } = await tempClient.auth.getUser(token);
     
     if (error || !data.user) {
