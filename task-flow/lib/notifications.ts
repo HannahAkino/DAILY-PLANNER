@@ -5,7 +5,7 @@
 export const playNotificationSound = () => {
   try {
     // First attempt: Use external MP3 file from /public directory
-    const audio = new Audio('/notify.mp3');
+    const audio = new Audio('/NOTIFY.mp3');
     audio.volume = 0.7; // Set volume to 70%
     
     // Play the sound
