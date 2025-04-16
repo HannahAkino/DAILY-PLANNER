@@ -55,10 +55,11 @@ export default function TaskAnalytics({ tasks }: TaskAnalyticsProps) {
 
     // Get tasks with due dates
     const tasksWithDueDates = tasks.filter(task => 
-      task.dueDate
+      task.dueDate || task.due_date
     ).map(task => ({
       ...task,
-      dueDate: task.dueDate ? new Date(task.dueDate) : null
+      dueDate: task.dueDate ? new Date(task.dueDate) : 
+              (task.due_date ? new Date(task.due_date) : null)
     }));
 
     // Weekly task distribution for the current and next week

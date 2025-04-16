@@ -27,13 +27,13 @@ import ConfirmationDialog from "@/components/dialogs/ConfirmationDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { supabase } from "@/lib/supabase";
-import { useSearchParams } from "next/navigation";
+// import { supabase } from "@/lib/supabase";
+// import { useSearchParams } from "next/navigation";
 import { initNotifications, scheduleTaskNotification, onReminderDialogClosed } from "@/lib/notifications";
 import ReminderAlert from "@/components/dialogs/ReminderAlert";
 
 // Helper function to normalize task from snake_case to camelCase
-const normalizeTask = (task: any) => {
+const normalizeTask = (task: Task) => {
     return {
         id: task.id,
         userId: task.user_id,
