@@ -462,7 +462,7 @@ export default function TasksView() {
         let shouldApplyLocalFilter = true;
         
         // For completed and priority, the API filtering should work well
-        if (activeTab === 'all' || activeTab === 'completed' || activeTab === 'priority') {
+        if (activeTab === 'all' || activeTab === 'completed' || activeTab === 'priority' || activeTab === 'analytics') {
             shouldApplyLocalFilter = false;
         }
         
@@ -470,13 +470,16 @@ export default function TasksView() {
         
         if (shouldApplyLocalFilter) {
             filtered = tasks.filter(task => {
+                // Normalize the dueDate field - handle both camelCase and snake_case properties
+                const taskDueDate = task.dueDate || task.due_date;
+                
                 // If no due date, it can't be today or upcoming
-                if (!task.dueDate && (activeTab === 'today' || activeTab === 'upcoming')) {
+                if (!taskDueDate && (activeTab === 'today' || activeTab === 'upcoming')) {
                     return false;
                 }
                 
                 // Parse the due date in YYYY-MM-DD format
-                const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+                const dueDate = taskDueDate ? new Date(taskDueDate) : null;
                 
                 // Set to midnight for comparison
                 if (dueDate) {

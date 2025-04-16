@@ -67,9 +67,12 @@ export default function TaskList({
                 </thead>
                 <tbody>
                     {tasks.map((task, index) => {
-                        // Parse due date for enhanced display
+                        // Consistently normalize due date - handle both camelCase and snake_case properties
                         const dueDate = task.dueDate ? new Date(task.dueDate) : 
                                        (task.due_date ? new Date(task.due_date) : null);
+                        
+                        // Normalize due time consistently
+                        const dueTime = task.dueTime || task.due_time || '';
                         
                         // Determine row styling based on task status and due date
                         let rowClass = "border-b border-gray-100 dark:border-gray-800 text-sm";
@@ -150,10 +153,10 @@ export default function TaskList({
                                     )}
                                 </td>
                                 <td className="py-3 text-center hidden md:table-cell">
-                                    {task.dueTime || task.due_time ? (
+                                    {dueTime ? (
                                         <Badge variant="outline" className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                                             <Clock className="h-3 w-3 mr-1" />
-                                            <span>{formatTimeForDisplay(task.dueTime || task.due_time)}</span>
+                                            <span>{formatTimeForDisplay(dueTime)}</span>
                                         </Badge>
                                     ) : (
                                         <span className="text-gray-400">—</span>
