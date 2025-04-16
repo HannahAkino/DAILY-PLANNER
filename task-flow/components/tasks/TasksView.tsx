@@ -70,7 +70,7 @@ export default function TasksView() {
 
     const loadTasks = useCallback(async () => {
         try {
-            console.log("Loading tasks, filter:", activeTab);
+            console.log("Loading all tasks from API");
             setLoading(true);
             
             // Get fresh token from auth context
@@ -89,13 +89,8 @@ export default function TasksView() {
             
             console.log("Got token for task loading:", token.substring(0, 10) + "...");
             
-            // Use API filtering with a fallback to client-side filtering
-            let filter = "";
-            if (activeTab !== "all") {
-                filter = `?filter=${activeTab}`;
-            }
-            
-            const response = await fetch(`/api/tasks${filter}`, {
+            // Always fetch all tasks - we'll filter client-side
+            const response = await fetch(`/api/tasks`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -111,12 +106,12 @@ export default function TasksView() {
             // Schedule notifications for tasks with reminders
             if (data.tasks && Array.isArray(data.tasks)) {
                 data.tasks.forEach(task => {
-                    if (task.reminder && !task.completed && task.due_date) {
+                    if (task.reminder && !task.completed && (task.due_date || task.dueDate)) {
                         scheduleTaskNotification(
                             task.id,
                             task.title,
-                            task.due_date,
-                            task.due_time || '00:00:00',
+                            task.due_date || task.dueDate,
+                            task.due_time || task.dueTime || '00:00:00',
                             task.reminder
                         );
                     }
@@ -129,7 +124,7 @@ export default function TasksView() {
         } finally {
             setLoading(false);
         }
-    }, [activeTab, getAuthToken, signOut]);
+    }, [getAuthToken, signOut]);
 
     useEffect(() => {
         if (user) {
@@ -227,12 +222,12 @@ export default function TasksView() {
                     
                     // Schedule notification if task has reminder and isn't completed
                     if (responseData.task && responseData.task.reminder && 
-                        !responseData.task.completed && responseData.task.due_date) {
+                        !responseData.task.completed && (responseData.task.due_date || responseData.task.dueDate)) {
                         scheduleTaskNotification(
                             responseData.task.id,
                             responseData.task.title,
-                            responseData.task.due_date,
-                            responseData.task.due_time || '00:00:00',
+                            responseData.task.due_date || responseData.task.dueDate,
+                            responseData.task.due_time || responseData.task.dueTime || '00:00:00',
                             responseData.task.reminder
                         );
                     }
@@ -271,12 +266,12 @@ export default function TasksView() {
                     
                     // Schedule notification if task has reminder and isn't completed
                     if (responseData.task && responseData.task.reminder && 
-                        !responseData.task.completed && responseData.task.due_date) {
+                        !responseData.task.completed && (responseData.task.due_date || responseData.task.dueDate)) {
                         scheduleTaskNotification(
                             responseData.task.id,
                             responseData.task.title,
-                            responseData.task.due_date,
-                            responseData.task.due_time || '00:00:00',
+                            responseData.task.due_date || responseData.task.dueDate,
+                            responseData.task.due_time || responseData.task.dueTime || '00:00:00',
                             responseData.task.reminder
                         );
                     }
@@ -452,60 +447,60 @@ export default function TasksView() {
     };
 
     const getFilteredTasks = () => {
-        // Local filtering to provide a fallback if API filtering doesn't work as expected
+        // All filtering is now done client-side
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
         
-        // First check if we need to apply additional filtering (in case API filtering isn't working)
-        let shouldApplyLocalFilter = true;
-        
-        // For completed and priority, the API filtering should work well
-        if (activeTab === 'all' || activeTab === 'completed' || activeTab === 'priority' || activeTab === 'analytics') {
-            shouldApplyLocalFilter = false;
-        }
-        
         let filtered = tasks;
         
-        if (shouldApplyLocalFilter) {
+        // Only analytics tab should show all tasks
+        if (activeTab !== 'analytics') {
             filtered = tasks.filter(task => {
                 // Normalize the dueDate field - handle both camelCase and snake_case properties
                 const taskDueDate = task.dueDate || task.due_date;
                 
-                // If no due date, it can't be today or upcoming
-                if (!taskDueDate && (activeTab === 'today' || activeTab === 'upcoming')) {
-                    return false;
-                }
-                
-                // Parse the due date in YYYY-MM-DD format
-                const dueDate = taskDueDate ? new Date(taskDueDate) : null;
-                
-                // Set to midnight for comparison
-                if (dueDate) {
-                    dueDate.setHours(0, 0, 0, 0);
-                }
-                
+                // Different filter logic based on active tab
                 switch(activeTab) {
                     case 'today': {
+                        // If no due date, it can't be today
+                        if (!taskDueDate) return false;
+                        
+                        // Parse the due date in YYYY-MM-DD format
+                        const dueDate = new Date(taskDueDate);
+                        dueDate.setHours(0, 0, 0, 0);
+                        
                         // Compare year, month, and day with today
                         const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
-                        const dueDateStr = dueDate?.toISOString().split('T')[0]; // YYYY-MM-DD
+                        const dueDateStr = dueDate.toISOString().split('T')[0]; // YYYY-MM-DD
                         return dueDateStr === todayStr;
                     }
                     case 'upcoming': {
+                        // If no due date, it can't be upcoming
+                        if (!taskDueDate) return false;
+                        
+                        // Parse the due date
+                        const dueDate = new Date(taskDueDate);
+                        dueDate.setHours(0, 0, 0, 0);
+                        
                         // All future dates starting from tomorrow
                         const tomorrowStr = tomorrow.toISOString().split('T')[0]; // YYYY-MM-DD
-                        const dueDateStr = dueDate?.toISOString().split('T')[0]; // YYYY-MM-DD
+                        const dueDateStr = dueDate.toISOString().split('T')[0]; // YYYY-MM-DD
                         return dueDateStr >= tomorrowStr;
                     }
+                    case 'completed':
+                        return task.completed === true;
+                    case 'priority':
+                        return task.priority === 'high';
+                    case 'all':
                     default:
                         return true;
                 }
             });
-            
-            console.log(`Applied local filtering for '${activeTab}': ${filtered.length} of ${tasks.length} tasks`);
         }
+        
+        console.log(`Applied client-side filtering for '${activeTab}': ${filtered.length} of ${tasks.length} tasks`);
         
         const completedCount = tasks.filter(task => task.completed).length;
         
